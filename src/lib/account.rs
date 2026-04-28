@@ -9,7 +9,7 @@ use crate::{
 /// typed AccountId for easier readability
 pub(crate) type AccountId = u16;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct Account {
     cx: AccountId,
     /// the processor will take mutable Accounts so we can update

@@ -41,23 +41,24 @@ impl System {
         Ok(())
     }
 
-    /// exports the records to a string
-    /// this is pretty inefficient on memory, and would prefer streaming this to a file writer,
-    /// but the requirements ask for it to be in std_out so will print in the bin fn where this is
-    /// called.
-    pub fn export_records(&self) -> Result<String> {
-        let mut wtr = csv::Writer::from_writer(vec![]);
+    /// exports the records to stdout
+    pub fn export_records(&self) -> Result<()> {
+        let stdout = std::io::stdout();
+        let handle = stdout.lock();
+
+        let mut wtr = csv::Writer::from_writer(handle);
 
         for (_cx, account) in self.accounts.iter() {
-            let record = OutputLineItem::from(account.clone());
+            let record = OutputLineItem::from(account);
             wtr.serialize(&record)?;
         }
+
+        wtr.flush()?;
 
         // not super efficient as it buffers the whole string
         // Could be refactored easily to dump straight to a file instead of redirecting stdout to a
         // file when calling the bin.
-        let data = String::from_utf8(wtr.into_inner()?)?;
-        Ok(data)
+        Ok(())
     }
 
     /// processes an individual line item, if there was an error reading the line item then we'll

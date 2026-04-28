@@ -60,8 +60,8 @@ pub(crate) struct OutputLineItem {
     locked: bool,
 }
 
-impl From<Account> for OutputLineItem {
-    fn from(account: Account) -> Self {
+impl From<&Account> for OutputLineItem {
+    fn from(account: &Account) -> Self {
         OutputLineItem {
             client: account.cx(),
             available: account.avaliable(),
