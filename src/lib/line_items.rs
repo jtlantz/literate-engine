@@ -1,7 +1,10 @@
 use std::{convert::Infallible, str::FromStr};
 
+use serde::{Deserialize, Serialize};
+
 use crate::account::AccountId;
 
+#[derive(Debug)]
 pub(crate) enum LineItemType {
     Deposit,
     Withdrawl,
@@ -27,15 +30,28 @@ impl FromStr for LineItemType {
     }
 }
 
-pub(crate) struct InputLineItems {
-    r#type: LineItemType,
-    cx: u16,
-    tx: u32,
-    /// Alternatively to Option, could set this as 0 when the line item type is not deposit or
-    /// withdrawl
-    amount: Option<f32>,
+impl<'de> Deserialize<'de> for LineItemType {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let item = String::deserialize(deserializer)?;
+        // LineItemType is infallible, making unwrap here ok
+        Ok(LineItemType::from_str(&item).unwrap())
+    }
 }
 
+#[derive(Debug, Deserialize)]
+pub(crate) struct InputLineItem {
+    pub(crate) r#type: LineItemType,
+    pub(crate) client: u16,
+    pub(crate) tx: u32,
+    /// Alternatively to Option, could set this as 0 when the line item type is not deposit or
+    /// withdrawl
+    pub(crate) amount: Option<f32>,
+}
+
+#[derive(Serialize)]
 pub(crate) struct OutputLineItems {
     cx: AccountId,
 }

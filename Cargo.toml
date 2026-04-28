@@ -9,4 +9,8 @@ path = "src/lib/lib.rs"
 
 [dependencies]
 anyhow = "1.0.102"
+csv = "1.4.0"
 dashmap = "6.1.0"
+serde = { version = "1", features = ["derive"] }
+test-log = { version = "0.2", features = ["trace"] }
+tracing = "0.1.44"
