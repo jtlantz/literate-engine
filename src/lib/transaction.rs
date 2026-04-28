@@ -1,7 +1,8 @@
 pub(crate) type TxId = u32;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct Transaction {
+    #[allow(unused)]
     tx_type: TxType,
     amount: f32,
     disputed: DisputeType,
@@ -35,13 +36,13 @@ impl Transaction {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) enum TxType {
     Deposit,
     Withdrawl,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) enum DisputeType {
     /// No dispute has been placed on this tx
     Nuetral,

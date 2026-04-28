@@ -2,7 +2,7 @@ use std::{convert::Infallible, str::FromStr};
 
 use serde::{Deserialize, Serialize};
 
-use crate::account::AccountId;
+use crate::account::{Account, AccountId};
 
 #[derive(Debug)]
 pub(crate) enum LineItemType {
@@ -51,7 +51,23 @@ pub(crate) struct InputLineItem {
     pub(crate) amount: Option<f32>,
 }
 
-#[derive(Serialize)]
-pub(crate) struct OutputLineItems {
-    cx: AccountId,
+#[derive(Debug, Serialize)]
+pub(crate) struct OutputLineItem {
+    client: AccountId,
+    available: f32,
+    held: f32,
+    total: f32,
+    locked: bool,
+}
+
+impl From<Account> for OutputLineItem {
+    fn from(account: Account) -> Self {
+        OutputLineItem {
+            client: account.cx(),
+            available: account.avaliable(),
+            held: account.held(),
+            total: account.total(),
+            locked: account.locked(),
+        }
+    }
 }

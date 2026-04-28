@@ -9,7 +9,7 @@ use crate::{
 /// typed AccountId for easier readability
 pub(crate) type AccountId = u16;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct Account {
     cx: AccountId,
     /// the processor will take mutable Accounts so we can update
@@ -33,9 +33,6 @@ impl Account {
             frozen: false,
         }
     }
-
-    // TODO: fail deposit and withdrawl if amounts are empty? weird to withdrawl nothing but i
-    // suppose it's ok
 
     pub(crate) fn deposit(&mut self, tx: InputLineItem) -> Result<()> {
         if self.frozen {
@@ -125,5 +122,21 @@ impl Account {
 
     pub(crate) fn total(&self) -> f32 {
         self.available + self.held
+    }
+
+    pub(crate) fn cx(&self) -> u16 {
+        self.cx
+    }
+
+    pub(crate) fn avaliable(&self) -> f32 {
+        self.available
+    }
+
+    pub(crate) fn held(&self) -> f32 {
+        self.held
+    }
+
+    pub(crate) fn locked(&self) -> bool {
+        self.frozen
     }
 }

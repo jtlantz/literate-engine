@@ -1,8 +1,10 @@
 use std::{collections::HashMap, path::PathBuf};
 
-use crate::{account::Account, line_items::InputLineItem};
+use crate::{
+    account::Account,
+    line_items::{InputLineItem, OutputLineItem},
+};
 use anyhow::Result;
-use tracing::info;
 
 /// typed AccountId for easier readability
 type AccountId = u16;
@@ -36,9 +38,26 @@ impl System {
             let _ = self.process_item(record);
         }
 
-        info!("System has current acocunt mapping {:#?}", self.accounts);
-
         Ok(())
+    }
+
+    /// exports the records to a string
+    /// this is pretty inefficient on memory, and would prefer streaming this to a file writer,
+    /// but the requirements ask for it to be in std_out so will print in the bin fn where this is
+    /// called.
+    pub fn export_records(&self) -> Result<String> {
+        let mut wtr = csv::Writer::from_writer(vec![]);
+
+        for (_cx, account) in self.accounts.iter() {
+            let record = OutputLineItem::from(account.clone());
+            wtr.serialize(&record)?;
+        }
+
+        // not super efficient as it buffers the whole string
+        // Could be refactored easily to dump straight to a file instead of redirecting stdout to a
+        // file when calling the bin.
+        let data = String::from_utf8(wtr.into_inner()?)?;
+        Ok(data)
     }
 
     /// processes an individual line item, if there was an error reading the line item then we'll
@@ -71,8 +90,14 @@ mod test {
     fn basic_deposit_withdrawl_test() {
         let mut test_system = System::new();
         // validates if the system can run and pull in this basic test
-        let _test_result = test_system
+        let _ = test_system
             .process("src/test-resources/basic_test.csv")
             .unwrap();
+
+        let _ = test_system.export_records().unwrap();
+
+        assert_eq!(test_system.accounts.get(&1).unwrap().total(), 1.5);
+        assert_eq!(test_system.accounts.get(&2).unwrap().total(), 2.0);
+        assert_eq!(test_system.accounts.get(&2).unwrap().held(), 0.0);
     }
 }
