@@ -70,10 +70,9 @@ mod test {
     #[test_log::test]
     fn basic_deposit_withdrawl_test() {
         let mut test_system = System::new();
-        let test_result = test_system
+        // validates if the system can run and pull in this basic test
+        let _test_result = test_system
             .process("src/test-resources/basic_test.csv")
             .unwrap();
-
-        println!("{:#?}", test_system.accounts);
     }
 }
