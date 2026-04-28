@@ -73,7 +73,7 @@ impl System {
             crate::line_items::LineItemType::Withdrawl => customer_record.withdrawl(line_item),
             crate::line_items::LineItemType::Dispute => customer_record.dispute(line_item),
             crate::line_items::LineItemType::Resolve => customer_record.resolve(line_item),
-            crate::line_items::LineItemType::Chargeback => customer_record.chargeback(line_item),
+            crate::line_items::LineItemType::Chargeback => customer_record.charge_back(line_item),
             crate::line_items::LineItemType::Unknown => {
                 Err(anyhow::anyhow!("unknown transaction type was passed"))
             }
@@ -86,6 +86,21 @@ impl System {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::line_items::{InputLineItem, LineItemType};
+
+    fn make_item(
+        tx_type: LineItemType,
+        client: u16,
+        tx: u32,
+        amount: Option<f32>,
+    ) -> InputLineItem {
+        InputLineItem {
+            r#type: tx_type,
+            client,
+            tx,
+            amount,
+        }
+    }
 
     #[test_log::test]
     fn basic_deposit_withdrawl_test() {
@@ -100,5 +115,118 @@ mod test {
         assert_eq!(test_system.accounts.get(&1).unwrap().total(), 1.5);
         assert_eq!(test_system.accounts.get(&2).unwrap().total(), 2.0);
         assert_eq!(test_system.accounts.get(&2).unwrap().held(), 0.0);
+    }
+
+    /// Dispute moves funds from available → held; resolve should return them to available.
+    #[test_log::test]
+    fn dispute_then_resolve_returns_funds() {
+        let mut system = System::new();
+        system
+            .process_item(make_item(LineItemType::Deposit, 1, 1, Some(100.0)))
+            .unwrap();
+        system
+            .process_item(make_item(LineItemType::Dispute, 1, 1, None))
+            .unwrap();
+
+        let acct = system.accounts.get(&1).unwrap();
+        assert_eq!(acct.held(), 100.0, "funds should be held after dispute");
+        assert_eq!(acct.avaliable(), 0.0, "available should be 0 after dispute");
+
+        system
+            .process_item(make_item(LineItemType::Resolve, 1, 1, None))
+            .unwrap();
+
+        let acct = system.accounts.get(&1).unwrap();
+        assert_eq!(acct.held(), 0.0, "held should be 0 after resolve");
+        assert_eq!(
+            acct.avaliable(),
+            100.0,
+            "available should be restored after resolve"
+        );
+        assert_eq!(acct.total(), 100.0);
+        assert!(!acct.locked());
+    }
+
+    /// Chargeback after a dispute should freeze the account and zero out all funds.
+    #[test_log::test]
+    fn dispute_then_chargeback_freezes_account() {
+        let mut system = System::new();
+        system
+            .process_item(make_item(LineItemType::Deposit, 1, 1, Some(100.0)))
+            .unwrap();
+        system
+            .process_item(make_item(LineItemType::Dispute, 1, 1, None))
+            .unwrap();
+        system
+            .process_item(make_item(LineItemType::Chargeback, 1, 1, None))
+            .unwrap();
+
+        let acct = system.accounts.get(&1).unwrap();
+        assert!(acct.locked(), "account should be frozen after chargeback");
+        assert_eq!(acct.held(), 0.0, "held should be cleared after chargeback");
+        assert_eq!(
+            acct.avaliable(),
+            0.0,
+            "available should remain 0 (was moved to held during dispute)"
+        );
+        assert_eq!(acct.total(), 0.0, "total should be 0 after chargeback");
+    }
+
+    /// A frozen account should reject further deposits and withdrawals.
+    #[test_log::test]
+    fn frozen_account_rejects_transactions() {
+        let mut system = System::new();
+        system
+            .process_item(make_item(LineItemType::Deposit, 1, 1, Some(50.0)))
+            .unwrap();
+        system
+            .process_item(make_item(LineItemType::Dispute, 1, 1, None))
+            .unwrap();
+        system
+            .process_item(make_item(LineItemType::Chargeback, 1, 1, None))
+            .unwrap();
+
+        assert!(
+            system
+                .process_item(make_item(LineItemType::Deposit, 1, 2, Some(10.0)))
+                .is_err()
+        );
+        assert!(
+            system
+                .process_item(make_item(LineItemType::Withdrawl, 1, 3, Some(10.0)))
+                .is_err()
+        );
+    }
+
+    /// A withdrawal that exceeds the available balance should fail and leave the balance unchanged.
+    #[test_log::test]
+    fn withdrawal_insufficient_funds_leaves_balance_unchanged() {
+        let mut system = System::new();
+        system
+            .process_item(make_item(LineItemType::Deposit, 1, 1, Some(50.0)))
+            .unwrap();
+
+        let result = system.process_item(make_item(LineItemType::Withdrawl, 1, 2, Some(100.0)));
+        assert!(result.is_err(), "withdrawal exceeding balance should error");
+
+        let acct = system.accounts.get(&1).unwrap();
+        assert_eq!(
+            acct.avaliable(),
+            50.0,
+            "balance should be unchanged after failed withdrawal"
+        );
+        assert_eq!(acct.total(), 50.0);
+    }
+
+    /// Disputing a transaction ID that doesn't exist in the ledger should return an error.
+    #[test_log::test]
+    fn dispute_nonexistent_transaction_errors() {
+        let mut system = System::new();
+        system
+            .process_item(make_item(LineItemType::Deposit, 1, 1, Some(50.0)))
+            .unwrap();
+
+        let result = system.process_item(make_item(LineItemType::Dispute, 1, 999, None));
+        assert!(result.is_err(), "disputing a non-existent tx should error");
     }
 }

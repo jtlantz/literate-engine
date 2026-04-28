@@ -103,16 +103,16 @@ impl Account {
         Ok(())
     }
 
-    pub(crate) fn chargeback(&mut self, tx: InputLineItem) -> Result<()> {
+    pub(crate) fn charge_back(&mut self, tx: InputLineItem) -> Result<()> {
         // validate tx is in customer ledger
         let cus_tx = self
             .transactions
             .get_mut(&tx.tx)
             .ok_or_else(|| anyhow::anyhow!("transaction doesn't exist in customer ledger"))?;
 
-        // release funds but freeze customer account
+        // release held funds and freeze customer account
+        // note: available was already decremented during dispute, so we only remove from held
         self.held -= cus_tx.amount();
-        self.available -= cus_tx.amount();
         cus_tx.charge_back();
 
         self.frozen = true;
