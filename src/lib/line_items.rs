@@ -7,7 +7,7 @@ use crate::account::{Account, AccountId};
 #[derive(Debug)]
 pub(crate) enum LineItemType {
     Deposit,
-    Withdrawl,
+    Withdrawal,
     Dispute,
     Resolve,
     Chargeback,
@@ -21,7 +21,7 @@ impl FromStr for LineItemType {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(match s {
             "deposit" => Self::Deposit,
-            "withdrawl" => Self::Withdrawl,
+            "withdrawal" => Self::Withdrawal,
             "dispute" => Self::Dispute,
             "resolve" => Self::Resolve,
             "chargeback" => Self::Chargeback,

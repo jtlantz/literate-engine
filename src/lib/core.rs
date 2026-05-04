@@ -70,7 +70,7 @@ impl System {
 
         let res = match line_item.r#type {
             crate::line_items::LineItemType::Deposit => customer_record.deposit(line_item),
-            crate::line_items::LineItemType::Withdrawl => customer_record.withdrawl(line_item),
+            crate::line_items::LineItemType::Withdrawal => customer_record.withdrawal(line_item),
             crate::line_items::LineItemType::Dispute => customer_record.dispute(line_item),
             crate::line_items::LineItemType::Resolve => customer_record.resolve(line_item),
             crate::line_items::LineItemType::Chargeback => customer_record.charge_back(line_item),
@@ -193,7 +193,7 @@ mod test {
         );
         assert!(
             system
-                .process_item(make_item(LineItemType::Withdrawl, 1, 3, Some(10.0)))
+                .process_item(make_item(LineItemType::Withdrawal, 1, 3, Some(10.0)))
                 .is_err()
         );
     }
@@ -206,7 +206,7 @@ mod test {
             .process_item(make_item(LineItemType::Deposit, 1, 1, Some(50.0)))
             .unwrap();
 
-        let result = system.process_item(make_item(LineItemType::Withdrawl, 1, 2, Some(100.0)));
+        let result = system.process_item(make_item(LineItemType::Withdrawal, 1, 2, Some(100.0)));
         assert!(result.is_err(), "withdrawal exceeding balance should error");
 
         let acct = system.accounts.get(&1).unwrap();

@@ -50,7 +50,7 @@ impl Account {
         Ok(())
     }
 
-    pub(crate) fn withdrawl(&mut self, tx: InputLineItem) -> Result<()> {
+    pub(crate) fn withdrawal(&mut self, tx: InputLineItem) -> Result<()> {
         if self.frozen {
             return Err(anyhow::anyhow!("Customer account is frozen"));
         }
@@ -61,7 +61,7 @@ impl Account {
             return Err(anyhow::anyhow!("Insufficient Funds available"));
         }
 
-        let transaction = Transaction::new(TxType::Withdrawl, amount);
+        let transaction = Transaction::new(TxType::Withdrawal, amount);
 
         self.available -= amount;
 

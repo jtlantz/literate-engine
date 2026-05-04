@@ -39,7 +39,7 @@ impl Transaction {
 #[derive(Debug)]
 pub(crate) enum TxType {
     Deposit,
-    Withdrawl,
+    Withdrawal,
 }
 
 #[derive(Debug)]
